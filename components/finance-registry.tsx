@@ -14,9 +14,12 @@ import {
   useDeleteFixedExpense,
   useBudgets,
   useAddBudget,
-  useDeleteBudget
+  useDeleteBudget,
+  useTransactions,
+  useAddTransaction,
+  useDeleteTransaction
 } from '@/hooks/use-financials'
-import { Plus, Trash2, Shield, DollarSign, Calendar, Landmark, Percent } from 'lucide-react'
+import { Plus, Trash2, Shield, DollarSign, Calendar, Landmark, Percent, Receipt } from 'lucide-react'
 import { toast } from 'sonner'
 
 export function FinanceRegistry() {
@@ -45,6 +48,10 @@ export function FinanceRegistry() {
   const addBudget = useAddBudget()
   const deleteBudget = useDeleteBudget()
 
+  const { data: transactions = [] } = useTransactions()
+  const addTransaction = useAddTransaction()
+  const deleteTransaction = useDeleteTransaction()
+
   // State for Income Form
   const [incSource, setIncSource] = useState('')
   const [incAmount, setIncAmount] = useState('')
@@ -59,6 +66,12 @@ export function FinanceRegistry() {
   // State for Budget Form
   const [budgCategory, setBudgCategory] = useState('')
   const [budgLimit, setBudgLimit] = useState('')
+
+  // State for Transaction Form
+  const [txDesc, setTxDesc] = useState('')
+  const [txAmount, setTxAmount] = useState('')
+  const [txCategory, setTxCategory] = useState('')
+  const [txDate, setTxDate] = useState(new Date().toISOString().split('T')[0])
 
   // Toggle hourly rate type
   const handleToggleRateType = async (type: 'manual' | 'auto') => {
@@ -145,6 +158,28 @@ export function FinanceRegistry() {
     }
   }
 
+  // Submit Transaction
+  const handleAddTransaction = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const amt = parseFloat(txAmount)
+    if (!txDesc || isNaN(amt) || amt <= 0 || !txCategory || !txDate) return
+
+    try {
+      await addTransaction.mutateAsync({
+        description: txDesc,
+        amount: amt,
+        category: txCategory,
+        date: txDate,
+      })
+      setTxDesc('')
+      setTxAmount('')
+      setTxCategory('')
+      toast.success('Transaction logged!')
+    } catch (err) {
+      toast.error('Failed to log transaction')
+    }
+  }
+
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
       {/* LEFT COLUMN: Incomes and Profile */}
@@ -209,7 +244,7 @@ export function FinanceRegistry() {
           <h2 className="text-lg font-bold text-foreground tracking-wide mb-6">Income Sources</h2>
 
           {/* Add Income Form */}
-          <form onSubmit={handleAddIncome} className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+          <form onSubmit={handleAddIncome} className="grid grid-cols-1 sm:grid-cols-3 gap-5 items-end">
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground font-semibold">Source Name</label>
               <Input
@@ -252,7 +287,7 @@ export function FinanceRegistry() {
           </form>
 
           {/* Incomes List */}
-          <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+          <div className="space-y-4 max-h-60 overflow-y-auto pr-1">
             {incomes.length === 0 ? (
               <p className="text-sm text-muted-foreground italic py-4">No incomes registered yet.</p>
             ) : (
@@ -287,7 +322,7 @@ export function FinanceRegistry() {
           <h2 className="text-lg font-bold text-foreground tracking-wide mb-6">Fixed Bills & Expenses (Monthly)</h2>
 
           {/* Add Expense Form */}
-          <form onSubmit={handleAddExpense} className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+          <form onSubmit={handleAddExpense} className="grid grid-cols-1 sm:grid-cols-4 gap-5 items-end">
             <div className="space-y-1 sm:col-span-2">
               <label className="text-xs text-muted-foreground font-semibold">Expense Name</label>
               <Input
@@ -338,7 +373,7 @@ export function FinanceRegistry() {
           </form>
 
           {/* Expenses List */}
-          <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+          <div className="space-y-4 max-h-48 overflow-y-auto pr-1">
             {fixedExpenses.length === 0 ? (
               <p className="text-sm text-muted-foreground italic py-4">No fixed expenses registered.</p>
             ) : (
@@ -372,7 +407,7 @@ export function FinanceRegistry() {
           <h2 className="text-lg font-bold text-foreground tracking-wide mb-6">Category Budgets (Monthly Limits)</h2>
 
           {/* Add Budget Form */}
-          <form onSubmit={handleAddBudget} className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+          <form onSubmit={handleAddBudget} className="grid grid-cols-1 sm:grid-cols-2 gap-5 items-end">
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground font-semibold">Category Name</label>
               <Input
@@ -401,7 +436,7 @@ export function FinanceRegistry() {
           </form>
 
           {/* Budgets List */}
-          <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+          <div className="space-y-4 max-h-48 overflow-y-auto pr-1">
             {budgets.length === 0 ? (
               <p className="text-sm text-muted-foreground italic py-4">No budget caps configured.</p>
             ) : (
@@ -417,6 +452,88 @@ export function FinanceRegistry() {
                       variant="ghost"
                       size="icon"
                       onClick={() => deleteBudget.mutate(b.id)}
+                      className="text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </GlassCard>
+
+        {/* Transactions Registry */}
+        <GlassCard className="space-y-6">
+          <h2 className="text-lg font-bold text-foreground tracking-wide mb-6 flex items-center gap-2">
+            <Receipt className="w-5 h-5 text-rose-400" /> Manual Transactions
+          </h2>
+
+          <form onSubmit={handleAddTransaction} className="grid grid-cols-1 sm:grid-cols-4 gap-5 items-end">
+            <div className="space-y-1 sm:col-span-2">
+              <label className="text-xs text-muted-foreground font-semibold">Description</label>
+              <Input
+                type="text"
+                placeholder="e.g. Groceries at Walmart"
+                value={txDesc}
+                onChange={(e) => setTxDesc(e.target.value)}
+                className="bg-card border-border text-foreground"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground font-semibold">Amount</label>
+              <Input
+                type="number"
+                placeholder="0.00"
+                value={txAmount}
+                onChange={(e) => setTxAmount(e.target.value)}
+                className="bg-card border-border text-foreground font-mono"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground font-semibold">Category</label>
+              <Input
+                type="text"
+                placeholder="e.g. Food"
+                value={txCategory}
+                onChange={(e) => setTxCategory(e.target.value)}
+                className="bg-card border-border text-foreground"
+              />
+            </div>
+            <div className="space-y-1 sm:col-span-4">
+              <label className="text-xs text-muted-foreground font-semibold">Date</label>
+              <div className="flex gap-2">
+                <Input
+                  type="date"
+                  value={txDate}
+                  onChange={(e) => setTxDate(e.target.value)}
+                  className="bg-card border-border text-foreground"
+                />
+                <Button type="submit" size="icon" className="bg-violet-600 hover:bg-violet-500 flex-shrink-0 text-white h-11 w-11">
+                  <Plus className="w-5 h-5" />
+                </Button>
+              </div>
+            </div>
+          </form>
+
+          <div className="space-y-4 max-h-48 overflow-y-auto pr-1">
+            {transactions.length === 0 ? (
+              <p className="text-sm text-muted-foreground italic py-4">No transactions logged.</p>
+            ) : (
+              transactions.map((t) => (
+                <div key={t.id} className="flex justify-between items-center bg-card p-3 rounded-lg border border-border">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{t.description}</p>
+                    <p className="text-xs text-muted-foreground capitalize">
+                      {t.category} • {t.date}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="font-mono text-rose-400 font-bold">-{symbol}{t.amount.toFixed(2)}</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => deleteTransaction.mutate(t.id)}
                       className="text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10"
                     >
                       <Trash2 className="w-4 h-4" />
