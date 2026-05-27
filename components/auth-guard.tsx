@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Toaster } from '@/components/ui/sonner'
-import { Sparkles, Lock, Mail, User } from 'lucide-react'
+import { Sparkles, Lock, Mail } from 'lucide-react'
 import { toast } from 'sonner'
 import { Sidebar } from './sidebar'
 import { ChatDrawer } from './chat-drawer'
@@ -17,10 +17,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const [isAuthLoading, setIsAuthLoading] = useState(true)
 
   // Auth inputs
-  const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [fullName, setFullName] = useState('')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -53,24 +51,12 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
     setLoading(true)
     try {
-      if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { full_name: fullName || 'User' },
-          },
-        })
-        if (error) throw error
-        toast.success('Registration successful! Please check email or log in.')
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        })
-        if (error) throw error
-        toast.success('Welcome back!')
-      }
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+      if (error) throw error
+      toast.success('Welcome back!')
     } catch (err: unknown) {
       toast.error((err as Error)?.message || 'Authentication failed')
     } finally {
@@ -104,19 +90,6 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
           </div>
 
           <form onSubmit={handleAuth} className="space-y-4">
-            {isSignUp && (
-              <div className="relative">
-                <User className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder="Full Name"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="bg-card border-border text-foreground pl-10"
-                  required
-                />
-              </div>
-            )}
 
             <div className="relative">
               <Mail className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
@@ -147,18 +120,9 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
               disabled={loading}
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20"
             >
-              {loading ? 'Authenticating...' : isSignUp ? 'Sign Up' : 'Sign In'}
+              {loading ? 'Authenticating...' : 'Sign In'}
             </Button>
           </form>
-
-          <div className="text-center">
-            <button
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="text-xs text-muted-foreground hover:text-primary transition-colors font-medium"
-            >
-              {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
-            </button>
-          </div>
         </div>
         <Toaster theme="dark" position="top-right" />
       </div>
