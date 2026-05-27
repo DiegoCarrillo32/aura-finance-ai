@@ -32,7 +32,7 @@ export default function RootLayout({
       className={`${roboto.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full bg-background text-foreground flex flex-col antialiased">
+      <body className="min-h-full bg-background text-foreground flex flex-col antialiased overflow-x-hidden w-full">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <Providers>
             <AuthGuard>

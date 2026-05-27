@@ -130,9 +130,9 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground transition-colors duration-300">
+    <div className="flex min-h-screen bg-background text-foreground transition-colors duration-300 w-full overflow-x-hidden">
       <Sidebar user={user} />
-      <main className="flex-1 relative overflow-y-auto p-4 md:p-8">
+      <main className="flex-1 relative overflow-y-auto overflow-x-hidden p-4 md:p-8 pb-24 md:pb-8 w-full max-w-full">
         {/* Soft background ambient lighting for the main content area */}
         <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-primary/[0.03] rounded-full blur-[100px] pointer-events-none -z-10" />
         <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-secondary/[0.03] rounded-full blur-[100px] pointer-events-none -z-10" />

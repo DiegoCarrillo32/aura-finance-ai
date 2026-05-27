@@ -28,7 +28,9 @@ export function Sidebar({ user }: { user: SupabaseUser | null }) {
   }
 
   return (
-    <div className="w-64 bg-card border-r border-border h-screen flex flex-col hidden md:flex sticky top-0 shrink-0">
+    <>
+      {/* Desktop Sidebar */}
+      <div className="w-64 bg-card border-r border-border h-screen flex flex-col hidden md:flex sticky top-0 shrink-0">
       <div className="p-6 flex items-center gap-3 border-b border-border">
         <div className="bg-primary/10 p-1.5 rounded-xl border border-primary/20 text-primary">
           <img src="/LOGO.jpeg" alt="Aura Logo" className="w-8 h-8 object-cover rounded-lg" />
@@ -73,5 +75,23 @@ export function Sidebar({ user }: { user: SupabaseUser | null }) {
         </Button>
       </div>
     </div>
+
+      {/* Mobile Bottom Nav */}
+      <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-card/90 backdrop-blur-xl flex items-center justify-around md:hidden z-50 px-2 py-2 pb-[max(env(safe-area-inset-bottom),0.5rem)]">
+        {navLinks.map((link) => {
+          const isActive = pathname === link.href
+          const Icon = link.icon
+          const shortName = link.name.replace('Finance ', '').replace('Savings ', '')
+          return (
+            <Link key={link.name} href={link.href} className={`flex flex-col items-center justify-center p-1 rounded-xl transition-all ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
+              <div className={`p-1.5 rounded-lg ${isActive ? 'bg-primary/10' : 'transparent'}`}>
+                <Icon className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] font-medium mt-0.5">{shortName}</span>
+            </Link>
+          )
+        })}
+      </div>
+    </>
   )
 }
