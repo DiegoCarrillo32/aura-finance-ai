@@ -2,16 +2,17 @@
 
 import React from 'react'
 import { FinanceSummary } from '@/components/finance-summary'
-import { useIncomes, useFixedExpenses, useBudgets, useSavingsGoals } from '@/hooks/use-financials'
+import { useIncomes, useFixedExpenses, useBudgets, useSavingsGoals, useTransactions } from '@/hooks/use-financials'
 import { GlassCard } from '@/components/glass-card'
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import { Sparkles, BarChart3, PieChart as PieChartIcon } from 'lucide-react'
+import { Sparkles, BarChart3, PieChart as PieChartIcon, Receipt } from 'lucide-react'
 
 export default function Dashboard() {
   const { data: incomes = [] } = useIncomes()
   const { data: fixedExpenses = [] } = useFixedExpenses()
   const { data: budgets = [] } = useBudgets()
   const { data: savingsGoals = [] } = useSavingsGoals()
+  const { data: transactions = [] } = useTransactions()
 
   // Calculate monthly totals
   const totalMonthlyIncome = incomes.reduce((sum, inc) => {
@@ -29,16 +30,28 @@ export default function Dashboard() {
   }, 0)
 
   const totalMonthlyBudgets = budgets.reduce((sum, b) => sum + b.limit_amount, 0)
+  
+  // Calculate transactions for current month
+  const currentMonth = new Date().getMonth()
+  const currentYear = new Date().getFullYear()
+  const monthlyTransactions = transactions.filter(t => {
+    const d = new Date(t.date)
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear
+  })
+  
+  const totalSpent = monthlyTransactions.reduce((sum, t) => sum + t.amount, 0)
+  const leftoverBudget = Math.max(totalMonthlyBudgets - totalSpent, 0)
   const monthlyLeftover = Math.max(totalMonthlyIncome - totalMonthlyExpenses - totalMonthlyBudgets, 0)
 
   // Pie Chart Data
   const pieData = [
-    { name: 'Leftover', value: monthlyLeftover },
+    { name: 'Leftover Income', value: monthlyLeftover },
     { name: 'Fixed Expenses', value: totalMonthlyExpenses },
-    { name: 'Budgets', value: totalMonthlyBudgets },
+    { name: 'Spent (Budgets)', value: totalSpent },
+    { name: 'Remaining Budgets', value: leftoverBudget },
   ].filter(d => d.value > 0)
 
-  const COLORS = ['#8b5cf6', '#ef4444', '#f59e0b'] // Violet, Red, Amber
+  const COLORS = ['#10b981', '#ef4444', '#f59e0b', '#8b5cf6'] // Emerald, Red, Amber, Violet
 
   // Bar Chart Data (Savings Goals)
   const barData = savingsGoals.map(goal => ({
@@ -124,6 +137,30 @@ export default function Dashboard() {
           </div>
         </GlassCard>
       </div>
+
+      <GlassCard className="space-y-4">
+        <div className="flex items-center gap-2 border-b border-border pb-4">
+          <Receipt className="w-5 h-5 text-rose-400" />
+          <h2 className="text-lg font-bold text-foreground tracking-wide">Recent Transactions</h2>
+        </div>
+        {transactions.length > 0 ? (
+          <div className="space-y-2">
+            {transactions.slice(0, 5).map((t) => (
+              <div key={t.id} className="flex justify-between items-center p-3 bg-card rounded-xl border border-border">
+                <div>
+                  <div className="font-semibold text-foreground">{t.description}</div>
+                  <div className="text-xs text-muted-foreground">{t.category} • {t.date}</div>
+                </div>
+                <div className="font-mono font-bold text-rose-400">-{t.amount}</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center justify-center py-8 text-sm text-muted-foreground italic">
+            No transactions logged yet. Upload a receipt in the Aura chat!
+          </div>
+        )}
+      </GlassCard>
     </div>
   )
 }

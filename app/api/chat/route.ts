@@ -4,7 +4,7 @@ import { genAI, SYSTEM_INSTRUCTION, FINANCIAL_TOOLS } from '@/lib/gemini'
 
 export async function POST(req: Request) {
   try {
-    const { messages } = await req.json()
+    const { messages, imageBase64, imageMimeType } = await req.json()
     if (!messages || messages.length === 0) {
       return NextResponse.json({ error: 'Messages are required' }, { status: 400 })
     }
@@ -90,11 +90,22 @@ ${JSON.stringify(snapshot, null, 2)}
 
     const activeMessage = messages[messages.length - 1].content
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const parts: Array<any> = [{ text: activeMessage }]
+    if (imageBase64 && imageMimeType) {
+      parts.push({
+        inlineData: {
+          data: imageBase64,
+          mimeType: imageMimeType,
+        },
+      })
+    }
+
     const chat = model.startChat({
       history: geminiHistory,
     })
 
-    const responseResult = await chat.sendMessage(activeMessage)
+    const responseResult = await chat.sendMessage(parts)
     const responseText = responseResult.response.text()
 
     // Capture Gemini function calling payloads

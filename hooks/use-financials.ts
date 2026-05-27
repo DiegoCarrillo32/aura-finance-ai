@@ -56,6 +56,16 @@ export interface SavingsGoal {
   created_at: string
 }
 
+export interface Transaction {
+  id: string
+  user_id: string
+  amount: number
+  description: string
+  category: string
+  date: string
+  created_at: string
+}
+
 // ------------------ PROFILE ------------------
 
 export function useProfile() {
@@ -381,6 +391,67 @@ export function useDeleteSavingsGoal() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['savings_goals'] })
+    },
+  })
+}
+
+// ------------------ TRANSACTIONS ------------------
+
+export function useTransactions() {
+  return useQuery<Transaction[]>({
+    queryKey: ['transactions'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return []
+
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      return data || []
+    },
+  })
+}
+
+export function useAddTransaction() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (transaction: Omit<Transaction, 'id' | 'user_id' | 'created_at'>) => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      const { data, error } = await supabase
+        .from('transactions')
+        .insert({ ...transaction, user_id: user.id })
+        .select('*')
+        .single()
+
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+    },
+  })
+}
+
+export function useDeleteTransaction() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
     },
   })
 }

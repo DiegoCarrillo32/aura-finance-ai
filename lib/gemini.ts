@@ -21,7 +21,13 @@ RULES FOR ACTIONS (Tool Calling):
 2. If the user wants to add/register a monthly bill or subscription, call 'propose_fixed_expense'.
 3. If the user mentions a new income stream or rate change, call 'propose_income'.
 4. If the user wants to define or update a spending budget cap, call 'propose_budget'.
-5. Important: Your tool calls do NOT write directly to the database. They generate interactive draft cards in the chat. Tell the user they can review and approve the draft card you've generated in the chat window.
+5. If the user uploads a receipt image or mentions a specific purchase, call 'propose_transaction' to log the transaction against their budget.
+6. Important: Your tool calls do NOT write directly to the database. They generate interactive draft cards in the chat. Tell the user they can review and approve the draft card you've generated in the chat window.
+
+SPECIAL INSTRUCTIONS FOR RECEIPTS:
+- The user's currency is Costa Rican Colones (CRC, ₡).
+- When parsing uploaded receipts, look for CRC formatting (e.g., 1.000,00 or 1,000.00). Ensure the final amount you propose is a plain numeric value (e.g., 1000.00).
+- Try to infer the budget category from the receipt's vendor or items.
 `
 
 export const FINANCIAL_TOOLS: Tool[] = [
@@ -113,6 +119,28 @@ export const FINANCIAL_TOOLS: Tool[] = [
             },
           },
           required: ['category', 'limit_amount'],
+        },
+      },
+      {
+        name: 'propose_transaction',
+        description: 'Propose logging a specific expenditure or transaction against a budget.',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            description: {
+              type: SchemaType.STRING,
+              description: "Description of the transaction or vendor (e.g., Trader Joe's, Uber, Amazon)",
+            },
+            amount: {
+              type: SchemaType.NUMBER,
+              description: 'Total amount spent (numeric, parsed correctly from CRC)',
+            },
+            category: {
+              type: SchemaType.STRING,
+              description: 'Inferred budget category (e.g., Food, Transportation, Entertainment)',
+            },
+          },
+          required: ['description', 'amount', 'category'],
         },
       },
     ],

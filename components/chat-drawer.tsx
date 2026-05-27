@@ -8,9 +8,10 @@ import {
   useAddFixedExpense,
   useAddIncome,
   useAddBudget,
+  useAddTransaction,
   useProfile
 } from '@/hooks/use-financials'
-import { MessageSquare, X, Send, Sparkles, Check, Trash } from 'lucide-react'
+import { MessageSquare, X, Send, Sparkles, Check, Trash, Paperclip } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Message {
@@ -28,6 +29,9 @@ interface Message {
 export function ChatDrawer() {
   const [isOpen, setIsOpen] = useState(false)
   const [inputMessage, setInputMessage] = useState('')
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
@@ -44,6 +48,7 @@ export function ChatDrawer() {
   const addFixedExpense = useAddFixedExpense()
   const addIncome = useAddIncome()
   const addBudget = useAddBudget()
+  const addTransaction = useAddTransaction()
   const { data: profile } = useProfile()
 
   const currencySymbols: Record<string, string> = {
@@ -64,19 +69,42 @@ export function ChatDrawer() {
     scrollToBottom()
   }, [messages, isOpen])
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0]
+      setImageFile(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!inputMessage.trim() || isLoading) return
+    if ((!inputMessage.trim() && !imageFile) || isLoading) return
 
     const userMsg: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: inputMessage,
+      content: inputMessage || 'Attached an image',
     }
 
     setMessages((prev) => [...prev, userMsg])
     setInputMessage('')
     setIsLoading(true)
+
+    let base64Data = null
+    let mimeType = null
+
+    if (imagePreview) {
+      base64Data = imagePreview.split(',')[1]
+      mimeType = imageFile?.type
+    }
+
+    setImageFile(null)
+    setImagePreview(null)
 
     try {
       const response = await fetch('/api/chat', {
@@ -87,6 +115,8 @@ export function ChatDrawer() {
             role: m.role,
             content: m.content,
           })),
+          imageBase64: base64Data,
+          imageMimeType: mimeType,
         }),
       })
 
@@ -163,6 +193,15 @@ export function ChatDrawer() {
           period: 'monthly',
         })
         toast.success(`Budget cap for "${category}" set to $${limit_amount}!`)
+      } else if (payload.type === 'propose_transaction') {
+        const { description, amount, category } = payload.data
+        await addTransaction.mutateAsync({
+          description,
+          amount: parseFloat(amount),
+          category,
+          date: new Date().toISOString().split('T')[0],
+        })
+        toast.success(`Transaction logged: ${description} for ${symbol}${amount}!`)
       }
 
       setMessages((prev) =>
@@ -279,6 +318,15 @@ export function ChatDrawer() {
                           <div>Limit Amount: <span className="font-mono text-amber-400 font-bold">{symbol}{msg.actionPayload.data.limit_amount}/mo</span></div>
                         </>
                       )}
+
+                      {msg.actionPayload.type === 'propose_transaction' && (
+                        <>
+                          <div className="font-semibold text-foreground">Log Transaction</div>
+                          <div>Description: <span className="font-medium text-slate-100">{msg.actionPayload.data.description}</span></div>
+                          <div>Amount: <span className="font-mono text-rose-400 font-bold">{symbol}{msg.actionPayload.data.amount}</span></div>
+                          <div className="capitalize">Category: <span className="font-medium text-slate-100">{msg.actionPayload.data.category}</span></div>
+                        </>
+                      )}
                     </div>
 
                     {!msg.actionExecuted && !msg.actionRejected ? (
@@ -322,24 +370,54 @@ export function ChatDrawer() {
         </div>
 
         {/* Input Form */}
-        <form onSubmit={handleSendMessage} className="p-4 border-t border-border bg-card/30 flex gap-2">
-          <Input
-            type="text"
-            placeholder="Ask Aura a financial question..."
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            className="flex-grow bg-card border-border text-foreground placeholder-slate-500"
-            disabled={isLoading}
-          />
-          <Button
-            type="submit"
-            size="icon"
-            className="bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-500/15"
-            disabled={isLoading}
-          >
-            <Send className="w-4 h-4" />
-          </Button>
-        </form>
+        <div className="p-4 border-t border-border bg-card/30 flex flex-col gap-2 relative">
+          {imagePreview && (
+            <div className="relative w-20 h-20 mb-1 rounded-lg overflow-hidden border border-border">
+              <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+              <button 
+                onClick={() => { setImageFile(null); setImagePreview(null) }}
+                className="absolute top-1 right-1 bg-black/50 rounded-full p-1 hover:bg-black/80 text-white"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          )}
+          <form onSubmit={handleSendMessage} className="flex gap-2 items-center">
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              ref={fileInputRef}
+              onChange={handleImageSelect}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => fileInputRef.current?.click()}
+              className="text-muted-foreground hover:text-foreground hover:bg-accent shrink-0"
+              disabled={isLoading}
+            >
+              <Paperclip className="w-5 h-5" />
+            </Button>
+            <Input
+              type="text"
+              placeholder="Ask Aura or attach receipt..."
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              className="flex-grow bg-card border-border text-foreground placeholder-slate-500"
+              disabled={isLoading}
+            />
+            <Button
+              type="submit"
+              size="icon"
+              className="bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-500/15 shrink-0"
+              disabled={isLoading}
+            >
+              <Send className="w-4 h-4" />
+            </Button>
+          </form>
+        </div>
       </div>
     </>
   )
