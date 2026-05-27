@@ -19,6 +19,11 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "Aura Finance",
   },
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+  },
 };
 
 export default function RootLayout({
