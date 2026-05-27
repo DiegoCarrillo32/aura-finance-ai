@@ -30,7 +30,7 @@ export function Sidebar({ user }: { user: SupabaseUser | null }) {
   return (
     <>
       {/* Desktop Sidebar */}
-      <div className="w-64 bg-card border-r border-border h-screen flex flex-col hidden md:flex sticky top-0 shrink-0">
+      <div className="w-64 bg-card border-r border-border h-full flex flex-col hidden md:flex shrink-0">
       <div className="p-6 flex items-center gap-3 border-b border-border">
         <div className="bg-primary/10 p-1.5 rounded-xl border border-primary/20 text-primary">
           <img src="/LOGO.jpeg" alt="Aura Logo" className="w-8 h-8 object-cover rounded-lg" />

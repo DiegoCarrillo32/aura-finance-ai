@@ -130,7 +130,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground transition-colors duration-300 w-full overflow-x-hidden">
+    <div className="flex h-screen overflow-hidden bg-background text-foreground transition-colors duration-300 w-full">
       <Sidebar user={user} />
       <main className="flex-1 relative overflow-y-auto overflow-x-hidden p-4 md:p-8 pb-24 md:pb-8 w-full max-w-full">
         {/* Soft background ambient lighting for the main content area */}
