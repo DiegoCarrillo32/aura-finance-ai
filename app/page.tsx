@@ -70,6 +70,7 @@ export default function Dashboard() {
   const [txAmount, setTxAmount] = useState("")
   const [txCategory, setTxCategory] = useState("")
   const [txDate, setTxDate] = useState(new Date().toISOString().split("T")[0])
+  const [txCurrency, setTxCurrency] = useState("CRC")
 
   const currencySymbols: Record<string, string> = {
     USD: "$",
@@ -217,10 +218,25 @@ export default function Dashboard() {
       return
     }
 
+    let finalAmount = amt
+    let finalDesc = txDesc
+
+    const userCur = profile?.currency || "USD"
+    const exRate = profile?.exchange_rate || 515
+    if (txCurrency !== userCur) {
+      if (txCurrency === "USD" && userCur === "CRC") {
+        finalAmount = amt * exRate
+        finalDesc = `${txDesc} ($${amt.toFixed(2)})`
+      } else if (txCurrency === "CRC" && userCur === "USD") {
+        finalAmount = amt / exRate
+        finalDesc = `${txDesc} (₡${amt.toLocaleString()})`
+      }
+    }
+
     try {
       await addTransaction.mutateAsync({
-        description: txDesc,
-        amount: amt,
+        description: finalDesc,
+        amount: finalAmount,
         category: txCategory,
         date: txDate,
       })
@@ -239,6 +255,7 @@ export default function Dashboard() {
     setTxDesc(`Bill: ${billName}`)
     setTxAmount(amount.toString())
     setTxCategory(category)
+    setTxCurrency(profile?.currency || "CRC")
     // Default the date to today or a day in the selected month/year
     const today = new Date()
     const isCurrentMonthYear = today.getMonth() === selectedMonth && today.getFullYear() === selectedYear
@@ -667,7 +684,7 @@ export default function Dashboard() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-1.5">
                 <label className="text-xs text-muted-foreground font-bold uppercase tracking-wider">Amount</label>
                 <Input
@@ -680,6 +697,22 @@ export default function Dashboard() {
                   step="any"
                   required
                 />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs text-muted-foreground font-bold uppercase tracking-wider">Currency</label>
+                <Select
+                  value={txCurrency}
+                  onValueChange={(val) => val && setTxCurrency(val)}
+                >
+                  <SelectTrigger className="bg-card border-border text-foreground h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border text-foreground bg-popover">
+                    <SelectItem value="USD">USD ($)</SelectItem>
+                    <SelectItem value="CRC">CRC (₡)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-1.5">

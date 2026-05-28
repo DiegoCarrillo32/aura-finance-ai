@@ -12,6 +12,7 @@ export interface Profile {
   hourly_rate: number
   hourly_rate_type: 'manual' | 'auto'
   updated_at: string
+  exchange_rate: number
 }
 
 export interface Income {
@@ -108,9 +109,15 @@ export function useProfile() {
           .single()
 
         if (insertError) throw insertError
-        return inserted
+        return {
+          ...inserted,
+          exchange_rate: user.user_metadata?.exchange_rate || 515
+        }
       }
-      return data
+      return {
+        ...data,
+        exchange_rate: user.user_metadata?.exchange_rate || 515
+      }
     },
   })
 }
@@ -122,10 +129,21 @@ export function useUpdateProfile() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
+      const { exchange_rate, ...profileUpdates } = updates
+
+      // If exchange_rate is provided, update user_metadata in Supabase Auth
+      if (exchange_rate !== undefined) {
+        const { error: authError } = await supabase.auth.updateUser({
+          data: { exchange_rate }
+        })
+        if (authError) throw authError
+      }
+
+      // Update profiles table
       const { data, error } = await supabase
         .from('profiles')
         .update({
-          ...updates,
+          ...profileUpdates,
           updated_at: new Date().toISOString(),
         })
         .eq('id', user.id)
@@ -133,7 +151,10 @@ export function useUpdateProfile() {
         .single()
 
       if (error) throw error
-      return data
+      return {
+        ...data,
+        exchange_rate: exchange_rate !== undefined ? exchange_rate : (user.user_metadata?.exchange_rate || 515)
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['profile'] })

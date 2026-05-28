@@ -51,9 +51,23 @@ export async function POST(req: Request) {
       savings_goals: goalsRes.data || [],
     }
 
+    const userCurrency = profileRes.data?.currency || 'USD'
+    const currencyInstruction = `
+=== SPECIAL CURRENCY RULES ===
+- The user's primary display currency in the app is ${userCurrency}.
+- When parsing receipts, check the receipt's currency:
+  - If the receipt is in Costa Rican Colones (CRC, ₡, colones) and the user's primary currency is USD, convert the CRC amount to USD using the exchange rate: 1 USD = 515 CRC. Propose the transaction in USD.
+  - If the receipt is in USD ($) and the user's primary currency is CRC, convert the USD amount to CRC using the exchange rate: 1 USD = 515 CRC. Propose the transaction in CRC.
+  - If the receipt currency matches the user's primary currency, do not perform any conversion. Propose the transaction in the user's primary currency.
+- When the user mentions an income, bill, or transaction, check if they specified a currency (e.g. "$3000" or "₡15000"). Convert it to the user's primary display currency (${userCurrency}) using 1 USD = 515 CRC before calling any proposal tools.
+==============================
+`
+
     // Compile dynamic context into system instruction
     const compiledInstruction = `
 ${SYSTEM_INSTRUCTION}
+
+${currencyInstruction}
 
 === USER FINANCIAL STATUS SNAPSHOT ===
 ${JSON.stringify(snapshot, null, 2)}

@@ -26,8 +26,8 @@ RULES FOR ACTIONS (Tool Calling):
 7. Important: Your tool calls do NOT write directly to the database. They generate interactive draft cards in the chat. Tell the user they can review and approve the draft card you've generated in the chat window.
 
 SPECIAL INSTRUCTIONS FOR RECEIPTS:
-- The user's currency is Costa Rican Colones (CRC, ₡).
-- When parsing uploaded receipts, look for CRC formatting (e.g., 1.000,00 or 1,000.00). Ensure the final amount you propose is a plain numeric value (e.g., 1000.00).
+- When parsing uploaded receipts, extract the numeric value and identify the currency symbol/formatting (e.g. ₡, CRC, $, USD).
+- Convert the receipt amount to the user's primary display currency if they do not match, following the currency rules. Ensure the final amount you propose is a plain numeric value (e.g., 1000.00).
 - Try to infer the budget category from the receipt's vendor or items.
 `
 

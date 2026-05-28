@@ -31,6 +31,7 @@ export default function ProfilePage() {
   const [currency, setCurrency] = useState('USD')
   const [hourlyRateType, setHourlyRateType] = useState<'manual' | 'auto'>('auto')
   const [manualRate, setManualRate] = useState('')
+  const [exchangeRate, setExchangeRate] = useState('515')
   const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
@@ -39,6 +40,7 @@ export default function ProfilePage() {
       setCurrency(profile.currency || 'USD')
       setHourlyRateType(profile.hourly_rate_type || 'auto')
       setManualRate(profile.hourly_rate?.toString() || '0')
+      setExchangeRate(profile.exchange_rate?.toString() || '515')
     }
   }, [profile])
 
@@ -47,11 +49,13 @@ export default function ProfilePage() {
     setIsSaving(true)
     try {
       const rateVal = parseFloat(manualRate)
+      const exRateVal = parseFloat(exchangeRate)
       await updateProfile.mutateAsync({
         full_name: fullName,
         currency,
         hourly_rate_type: hourlyRateType,
         hourly_rate: isNaN(rateVal) ? 0 : rateVal,
+        exchange_rate: isNaN(exRateVal) ? 515 : exRateVal,
       })
       toast.success('Profile settings updated successfully!')
     } catch (err: unknown) {
@@ -98,21 +102,35 @@ export default function ProfilePage() {
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs text-muted-foreground font-bold uppercase tracking-wider">Display Currency</label>
-                  <Select value={currency} onValueChange={(val) => setCurrency(val || 'USD')}>
-                    <SelectTrigger className="bg-card/50 border-border text-foreground">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover border-border text-foreground">
-                      <SelectItem value="USD">USD ($)</SelectItem>
-                      <SelectItem value="EUR">EUR (€)</SelectItem>
-                      <SelectItem value="GBP">GBP (£)</SelectItem>
-                      <SelectItem value="MXN">MXN ($)</SelectItem>
-                      <SelectItem value="CAD">CAD ($)</SelectItem>
-                      <SelectItem value="JPY">JPY (¥)</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs text-muted-foreground font-bold uppercase tracking-wider">Display Currency</label>
+                    <Select value={currency} onValueChange={(val) => setCurrency(val || 'USD')}>
+                      <SelectTrigger className="bg-card/50 border-border text-foreground">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover border-border text-foreground">
+                        <SelectItem value="USD">USD ($)</SelectItem>
+                        <SelectItem value="EUR">EUR (€)</SelectItem>
+                        <SelectItem value="GBP">GBP (£)</SelectItem>
+                        <SelectItem value="MXN">MXN ($)</SelectItem>
+                        <SelectItem value="CAD">CAD ($)</SelectItem>
+                        <SelectItem value="JPY">JPY (¥)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs text-muted-foreground font-bold uppercase tracking-wider">Exchange Rate (USD → CRC)</label>
+                    <Input
+                      type="number"
+                      value={exchangeRate}
+                      onChange={(e) => setExchangeRate(e.target.value)}
+                      className="bg-card/50 border-border text-foreground font-mono"
+                      min="1"
+                      step="any"
+                      required
+                    />
+                  </div>
                 </div>
               </div>
 

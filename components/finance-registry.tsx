@@ -74,6 +74,7 @@ export function FinanceRegistry() {
   // State for Income Form
   const [incSource, setIncSource] = useState("");
   const [incAmount, setIncAmount] = useState("");
+  const [incCurrency, setIncCurrency] = useState("USD");
   const [incFreq, setIncFreq] = useState<
     "weekly" | "biweekly" | "monthly" | "one_time"
   >("monthly");
@@ -122,13 +123,31 @@ export function FinanceRegistry() {
     const amt = parseFloat(incAmount);
     if (!incSource || isNaN(amt) || amt <= 0) return;
 
+    let finalAmount = amt;
+    let finalSource = incSource;
+    let finalDescription = null;
+
+    const userCur = profile?.currency || "USD";
+    const exRate = profile?.exchange_rate || 515;
+    if (incCurrency !== userCur) {
+      if (incCurrency === "USD" && userCur === "CRC") {
+        finalAmount = amt * exRate;
+        finalSource = `${incSource} ($)`;
+        finalDescription = `Original: $${amt.toFixed(2)} USD (Converted at 1 USD = ${exRate} CRC)`;
+      } else if (incCurrency === "CRC" && userCur === "USD") {
+        finalAmount = amt / exRate;
+        finalSource = `${incSource} (₡)`;
+        finalDescription = `Original: ₡${amt.toLocaleString()} CRC (Converted at 1 USD = ${exRate} CRC)`;
+      }
+    }
+
     try {
       await addIncome.mutateAsync({
-        source: incSource,
-        amount: amt,
+        source: finalSource,
+        amount: finalAmount,
         frequency: incFreq,
         start_date: new Date().toISOString().split("T")[0],
-        description: null,
+        description: finalDescription,
       });
       setIncSource("");
       setIncAmount("");
@@ -298,7 +317,7 @@ export function FinanceRegistry() {
           {/* Add Income Form */}
           <form
             onSubmit={handleAddIncome}
-            className="grid grid-cols-1 sm:grid-cols-3 gap-5 items-end"
+            className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end"
           >
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground font-semibold">
@@ -326,6 +345,23 @@ export function FinanceRegistry() {
             </div>
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground font-semibold">
+                Currency
+              </label>
+              <Select
+                value={incCurrency}
+                onValueChange={(val) => val && setIncCurrency(val)}
+              >
+                <SelectTrigger className="bg-card border-border text-foreground">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border text-foreground bg-popover">
+                  <SelectItem value="USD">USD ($)</SelectItem>
+                  <SelectItem value="CRC">CRC (₡)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground font-semibold">
                 Frequency
               </label>
               <div className="flex gap-2">
@@ -336,7 +372,7 @@ export function FinanceRegistry() {
                   <SelectTrigger className="bg-card border-border text-foreground">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-card border-border text-foreground">
+                  <SelectContent className="bg-card border-border text-foreground bg-popover">
                     <SelectItem value="weekly">Weekly</SelectItem>
                     <SelectItem value="biweekly">Biweekly</SelectItem>
                     <SelectItem value="monthly">Monthly</SelectItem>
@@ -346,7 +382,7 @@ export function FinanceRegistry() {
                 <Button
                   type="submit"
                   size="icon"
-                  className="bg-violet-600 hover:bg-violet-500 flex-shrink-0 text-white"
+                  className="bg-violet-600 hover:bg-violet-500 flex-shrink-0 text-white cursor-pointer"
                 >
                   <Plus className="w-5 h-5" />
                 </Button>
@@ -371,7 +407,7 @@ export function FinanceRegistry() {
                       {inc.source}
                     </p>
                     <p className="text-xs text-muted-foreground capitalize">
-                      {inc.frequency}
+                      {inc.frequency} {inc.description ? `• ${inc.description}` : ''}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
