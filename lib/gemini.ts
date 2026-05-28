@@ -22,7 +22,8 @@ RULES FOR ACTIONS (Tool Calling):
 3. If the user mentions a new income stream or rate change, call 'propose_income'.
 4. If the user wants to define or update a spending budget cap, call 'propose_budget'.
 5. If the user uploads a receipt image or mentions a specific purchase, call 'propose_transaction' to log the transaction against their budget.
-6. Important: Your tool calls do NOT write directly to the database. They generate interactive draft cards in the chat. Tell the user they can review and approve the draft card you've generated in the chat window.
+6. If the user mentions buying something on installments, financing, or tracking a loan, call 'propose_installment'.
+7. Important: Your tool calls do NOT write directly to the database. They generate interactive draft cards in the chat. Tell the user they can review and approve the draft card you've generated in the chat window.
 
 SPECIAL INSTRUCTIONS FOR RECEIPTS:
 - The user's currency is Costa Rican Colones (CRC, ₡).
@@ -141,6 +142,40 @@ export const FINANCIAL_TOOLS: Tool[] = [
             },
           },
           required: ['description', 'amount', 'category'],
+        },
+      },
+      {
+        name: 'propose_installment',
+        description: 'Propose tracking a new fixed-term installment plan (e.g. loan, financing).',
+        parameters: {
+          type: SchemaType.OBJECT,
+          properties: {
+            name: {
+              type: SchemaType.STRING,
+              description: 'Name of the item or loan (e.g., iPhone 15 Pro, Car Loan)',
+            },
+            monthly_amount: {
+              type: SchemaType.NUMBER,
+              description: 'Amount paid each month (numeric)',
+            },
+            total_amount: {
+              type: SchemaType.NUMBER,
+              description: 'Total cost of the loan or item (numeric)',
+            },
+            total_installments: {
+              type: SchemaType.INTEGER,
+              description: 'Total number of months the plan lasts (numeric)',
+            },
+            installments_paid: {
+              type: SchemaType.INTEGER,
+              description: 'Number of months already paid off (numeric, usually 0 if new)',
+            },
+            start_date: {
+              type: SchemaType.STRING,
+              description: 'Start date in YYYY-MM-DD format',
+            },
+          },
+          required: ['name', 'monthly_amount', 'total_amount', 'total_installments', 'installments_paid', 'start_date'],
         },
       },
     ],

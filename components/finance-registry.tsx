@@ -21,9 +21,10 @@ import {
   useBudgets,
   useAddBudget,
   useDeleteBudget,
-  useTransactions,
-  useAddTransaction,
-  useDeleteTransaction,
+  useInstallments,
+  useAddInstallment,
+  useUpdateInstallment,
+  useDeleteInstallment,
 } from "@/hooks/use-financials";
 import {
   Plus,
@@ -34,6 +35,8 @@ import {
   Landmark,
   Percent,
   Receipt,
+  CreditCard,
+  CheckCircle2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -63,9 +66,10 @@ export function FinanceRegistry() {
   const addBudget = useAddBudget();
   const deleteBudget = useDeleteBudget();
 
-  const { data: transactions = [] } = useTransactions();
-  const addTransaction = useAddTransaction();
-  const deleteTransaction = useDeleteTransaction();
+  const { data: installments = [] } = useInstallments();
+  const addInstallment = useAddInstallment();
+  const updateInstallment = useUpdateInstallment();
+  const deleteInstallment = useDeleteInstallment();
 
   // State for Income Form
   const [incSource, setIncSource] = useState("");
@@ -84,11 +88,15 @@ export function FinanceRegistry() {
   const [budgCategory, setBudgCategory] = useState("");
   const [budgLimit, setBudgLimit] = useState("");
 
-  // State for Transaction Form
-  const [txDesc, setTxDesc] = useState("");
-  const [txAmount, setTxAmount] = useState("");
-  const [txCategory, setTxCategory] = useState("");
-  const [txDate, setTxDate] = useState(new Date().toISOString().split("T")[0]);
+
+
+  // State for Installment Form
+  const [instName, setInstName] = useState("");
+  const [instTotal, setInstTotal] = useState("");
+  const [instMonthly, setInstMonthly] = useState("");
+  const [instMonths, setInstMonths] = useState("");
+  const [instPaid, setInstPaid] = useState("0");
+  const [instStartDate, setInstStartDate] = useState(new Date().toISOString().split("T")[0]);
 
   // Toggle hourly rate type
   const handleToggleRateType = async (type: "manual" | "auto") => {
@@ -175,25 +183,35 @@ export function FinanceRegistry() {
     }
   };
 
-  // Submit Transaction
-  const handleAddTransaction = async (e: React.FormEvent) => {
+
+
+  // Submit Installment
+  const handleAddInstallment = async (e: React.FormEvent) => {
     e.preventDefault();
-    const amt = parseFloat(txAmount);
-    if (!txDesc || isNaN(amt) || amt <= 0 || !txCategory || !txDate) return;
+    const monthly = parseFloat(instMonthly);
+    const total = instTotal ? parseFloat(instTotal) : null;
+    const months = parseInt(instMonths);
+    const paid = parseInt(instPaid);
+
+    if (!instName || isNaN(monthly) || isNaN(months) || !instStartDate) return;
 
     try {
-      await addTransaction.mutateAsync({
-        description: txDesc,
-        amount: amt,
-        category: txCategory,
-        date: txDate,
+      await addInstallment.mutateAsync({
+        name: instName,
+        monthly_amount: monthly,
+        total_amount: total,
+        total_installments: months,
+        installments_paid: isNaN(paid) ? 0 : paid,
+        start_date: instStartDate,
       });
-      setTxDesc("");
-      setTxAmount("");
-      setTxCategory("");
-      toast.success("Transaction logged!");
+      setInstName("");
+      setInstTotal("");
+      setInstMonthly("");
+      setInstMonths("");
+      setInstPaid("0");
+      toast.success("Installment plan added!");
     } catch (err) {
-      toast.error("Failed to log transaction");
+      toast.error("Failed to add installment plan");
     }
   };
 
@@ -372,6 +390,193 @@ export function FinanceRegistry() {
                   </div>
                 </div>
               ))
+            )}
+          </div>
+        </GlassCard>
+
+        {/* Installments Registry */}
+        <GlassCard className="space-y-6">
+          <h2 className="text-lg font-bold text-foreground tracking-wide mb-6 flex items-center gap-2">
+            <CreditCard className="w-5 h-5 text-indigo-400" /> Installment Plans
+          </h2>
+
+          {/* Add Installment Form */}
+          <form
+            onSubmit={handleAddInstallment}
+            className="grid grid-cols-1 sm:grid-cols-6 gap-5 items-end"
+          >
+            <div className="space-y-1 sm:col-span-2">
+              <label className="text-xs text-muted-foreground font-semibold">
+                Item / Loan Name
+              </label>
+              <Input
+                type="text"
+                placeholder="e.g. iPhone 15 Pro"
+                value={instName}
+                onChange={(e) => setInstName(e.target.value)}
+                className="bg-card border-border text-foreground"
+              />
+            </div>
+            <div className="space-y-1 sm:col-span-2">
+              <label className="text-xs text-muted-foreground font-semibold">
+                Monthly Amount
+              </label>
+              <Input
+                type="number"
+                placeholder="0.00"
+                value={instMonthly}
+                onChange={(e) => setInstMonthly(e.target.value)}
+                className="bg-card border-border text-foreground font-mono"
+              />
+            </div>
+            <div className="space-y-1 sm:col-span-2">
+              <label className="text-xs text-muted-foreground font-semibold">
+                Total Cost (Optional)
+              </label>
+              <Input
+                type="number"
+                placeholder="0.00"
+                value={instTotal}
+                onChange={(e) => setInstTotal(e.target.value)}
+                className="bg-card border-border text-foreground font-mono"
+              />
+            </div>
+            <div className="space-y-1 sm:col-span-2">
+              <label className="text-xs text-muted-foreground font-semibold">
+                Total Months
+              </label>
+              <Input
+                type="number"
+                placeholder="e.g. 12"
+                value={instMonths}
+                onChange={(e) => setInstMonths(e.target.value)}
+                className="bg-card border-border text-foreground font-mono"
+              />
+            </div>
+            <div className="space-y-1 sm:col-span-2">
+              <label className="text-xs text-muted-foreground font-semibold">
+                Months Paid
+              </label>
+              <Input
+                type="number"
+                placeholder="0"
+                value={instPaid}
+                onChange={(e) => setInstPaid(e.target.value)}
+                className="bg-card border-border text-foreground font-mono"
+              />
+            </div>
+            <div className="space-y-1 sm:col-span-2">
+              <label className="text-xs text-muted-foreground font-semibold">
+                Start Date
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  type="date"
+                  value={instStartDate}
+                  onChange={(e) => setInstStartDate(e.target.value)}
+                  className="bg-card border-border text-foreground"
+                />
+                <Button
+                  type="submit"
+                  size="icon"
+                  className="bg-indigo-600 hover:bg-indigo-500 flex-shrink-0 text-white"
+                >
+                  <Plus className="w-5 h-5" />
+                </Button>
+              </div>
+            </div>
+          </form>
+
+          {/* Installments List */}
+          <div className="space-y-4 max-h-48 overflow-y-auto pr-1">
+            {installments.length === 0 ? (
+              <p className="text-sm text-muted-foreground italic py-4">
+                No active installments.
+              </p>
+            ) : (
+              installments.map((inst) => {
+                const isFinished = inst.installments_paid >= inst.total_installments;
+                const startDate = new Date(inst.start_date);
+                const today = new Date();
+                const expectedPaid = Math.min(
+                  inst.total_installments,
+                  Math.max(
+                    0,
+                    (today.getFullYear() - startDate.getFullYear()) * 12 +
+                    (today.getMonth() - startDate.getMonth()) + 1
+                  )
+                );
+
+                return (
+                  <div
+                    key={inst.id}
+                    className={`flex justify-between items-center bg-card p-3 rounded-lg border ${
+                      isFinished ? 'border-emerald-500/50 opacity-60' : 'border-border'
+                    }`}
+                  >
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+                        {inst.name}
+                        {isFinished && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+                      </p>
+                      <div className="text-xs text-muted-foreground mt-1 flex flex-col gap-0.5">
+                        <p>
+                          {inst.installments_paid} / {inst.total_installments} months paid
+                          {!isFinished && inst.installments_paid < expectedPaid && (
+                            <span className="text-rose-400 ml-2 font-medium">
+                              (Behind: {expectedPaid - inst.installments_paid} mo)
+                            </span>
+                          )}
+                        </p>
+                        <p>Start: {inst.start_date}</p>
+                      </div>
+                      
+                      {/* Progress bar */}
+                      <div className="w-full bg-background rounded-full h-1.5 mt-2 overflow-hidden border border-border/50">
+                        <div 
+                          className={`h-1.5 rounded-full ${isFinished ? 'bg-emerald-500' : 'bg-indigo-500'}`} 
+                          style={{ width: `${Math.min(100, (inst.installments_paid / inst.total_installments) * 100)}%` }}
+                        ></div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 ml-4">
+                      <div className="text-right">
+                        <span className="font-mono text-rose-400 font-bold block">
+                          {symbol}
+                          {inst.monthly_amount.toFixed(2)}/mo
+                        </span>
+                        {inst.total_amount && (
+                          <span className="text-[10px] text-muted-foreground block font-mono">
+                            Total: {symbol}{inst.total_amount.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        {!isFinished && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => updateInstallment.mutate({ id: inst.id, installments_paid: inst.installments_paid + 1 })}
+                            title="Mark next month paid"
+                            className="text-muted-foreground hover:text-emerald-400 hover:bg-emerald-500/10 h-8 w-8"
+                          >
+                            <CheckCircle2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => deleteInstallment.mutate(inst.id)}
+                          className="text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 h-8 w-8"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
         </GlassCard>
@@ -580,112 +785,6 @@ export function FinanceRegistry() {
           </div>
         </GlassCard>
 
-        {/* Transactions Registry */}
-        <GlassCard className="space-y-6">
-          <h2 className="text-lg font-bold text-foreground tracking-wide mb-6 flex items-center gap-2">
-            <Receipt className="w-5 h-5 text-rose-400" /> Manual Transactions
-          </h2>
-
-          <form
-            onSubmit={handleAddTransaction}
-            className="grid grid-cols-1 sm:grid-cols-4 gap-5 items-end"
-          >
-            <div className="space-y-1 sm:col-span-2">
-              <label className="text-xs text-muted-foreground font-semibold">
-                Description
-              </label>
-              <Input
-                type="text"
-                placeholder="e.g. Groceries at Walmart"
-                value={txDesc}
-                onChange={(e) => setTxDesc(e.target.value)}
-                className="bg-card border-border text-foreground"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground font-semibold">
-                Amount
-              </label>
-              <Input
-                type="number"
-                placeholder="0.00"
-                value={txAmount}
-                onChange={(e) => setTxAmount(e.target.value)}
-                className="bg-card border-border text-foreground font-mono"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-muted-foreground font-semibold">
-                Category
-              </label>
-              <Input
-                type="text"
-                placeholder="e.g. Food"
-                value={txCategory}
-                onChange={(e) => setTxCategory(e.target.value)}
-                className="bg-card border-border text-foreground"
-              />
-            </div>
-            <div className="space-y-1 sm:col-span-4">
-              <label className="text-xs text-muted-foreground font-semibold">
-                Date
-              </label>
-              <div className="flex gap-2">
-                <Input
-                  type="date"
-                  value={txDate}
-                  onChange={(e) => setTxDate(e.target.value)}
-                  className="bg-card border-border text-foreground"
-                />
-                <Button
-                  type="submit"
-                  size="icon"
-                  className="bg-violet-600 hover:bg-violet-500 flex-shrink-0 text-white h-11 w-11"
-                >
-                  <Plus className="w-5 h-5" />
-                </Button>
-              </div>
-            </div>
-          </form>
-
-          <div className="space-y-4 max-h-48 overflow-y-auto pr-1">
-            {transactions.length === 0 ? (
-              <p className="text-sm text-muted-foreground italic py-4">
-                No transactions logged.
-              </p>
-            ) : (
-              transactions.map((t) => (
-                <div
-                  key={t.id}
-                  className="flex justify-between items-center bg-card p-3 rounded-lg border border-border"
-                >
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">
-                      {t.description}
-                    </p>
-                    <p className="text-xs text-muted-foreground capitalize">
-                      {t.category} • {t.date}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-mono text-rose-400 font-bold">
-                      -{symbol}
-                      {t.amount.toFixed(2)}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => deleteTransaction.mutate(t.id)}
-                      className="text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </GlassCard>
       </div>
     </div>
   );

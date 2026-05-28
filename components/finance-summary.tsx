@@ -3,7 +3,12 @@ import { GlassCard } from './glass-card'
 import { useProfile, useIncomes, useFixedExpenses, useBudgets } from '@/hooks/use-financials'
 import { DollarSign, Landmark, ArrowUpRight, ArrowDownRight, Wallet, Hammer } from 'lucide-react'
 
-export function FinanceSummary() {
+export interface FinanceSummaryProps {
+  selectedMonth?: number // 0-11
+  selectedYear?: number
+}
+
+export function FinanceSummary({ selectedMonth, selectedYear }: FinanceSummaryProps) {
   const { data: profile } = useProfile()
   const { data: incomes = [] } = useIncomes()
   const { data: fixedExpenses = [] } = useFixedExpenses()
@@ -19,24 +24,44 @@ export function FinanceSummary() {
   }
   const symbol = currencySymbols[profile?.currency || 'USD'] || '$'
 
+  const now = new Date()
+  const month = selectedMonth !== undefined ? selectedMonth : now.getMonth()
+  const year = selectedYear !== undefined ? selectedYear : now.getFullYear()
+  const endOfSelectedMonth = new Date(year, month + 1, 0)
+
   // Calculate monthly total income
   const totalMonthlyIncome = incomes.reduce((sum, inc) => {
+    const startDate = new Date(inc.start_date)
+    if (startDate > endOfSelectedMonth) return sum
+
     let amt = inc.amount
     if (inc.frequency === 'weekly') amt *= 4.33
     else if (inc.frequency === 'biweekly') amt *= 2.16
-    else if (inc.frequency === 'one_time') return sum
+    else if (inc.frequency === 'one_time') {
+      const isSameMonth = startDate.getMonth() === month && startDate.getFullYear() === year
+      if (!isSameMonth) return sum
+      amt = inc.amount
+    }
     return sum + amt
   }, 0)
 
   // Calculate monthly fixed expenses
   const totalMonthlyExpenses = fixedExpenses.reduce((sum, exp) => {
+    const createdAt = new Date(exp.created_at)
+    if (createdAt > endOfSelectedMonth) return sum
+
     let amt = exp.amount
     if (exp.frequency === 'yearly') amt /= 12
     return sum + amt
   }, 0)
 
   // Calculate monthly budgets
-  const totalMonthlyBudgets = budgets.reduce((sum, b) => sum + b.limit_amount, 0)
+  const totalMonthlyBudgets = budgets.reduce((sum, b) => {
+    const createdAt = new Date(b.created_at)
+    if (createdAt > endOfSelectedMonth) return sum
+    return sum + b.limit_amount
+  }, 0)
+
 
   // Net Cash Flow (Disposable Income)
   const disposableIncome = Math.max(totalMonthlyIncome - totalMonthlyExpenses - totalMonthlyBudgets, 0)

@@ -9,6 +9,7 @@ import {
   useAddIncome,
   useAddBudget,
   useAddTransaction,
+  useAddInstallment,
   useProfile
 } from '@/hooks/use-financials'
 import { MessageSquare, X, Send, Sparkles, Check, Trash, Paperclip } from 'lucide-react'
@@ -49,6 +50,7 @@ export function ChatDrawer() {
   const addIncome = useAddIncome()
   const addBudget = useAddBudget()
   const addTransaction = useAddTransaction()
+  const addInstallment = useAddInstallment()
   const { data: profile } = useProfile()
 
   const currencySymbols: Record<string, string> = {
@@ -202,6 +204,17 @@ export function ChatDrawer() {
           date: new Date().toISOString().split('T')[0],
         })
         toast.success(`Transaction logged: ${description} for ${symbol}${amount}!`)
+      } else if (payload.type === 'propose_installment') {
+        const { name, monthly_amount, total_amount, total_installments, installments_paid, start_date } = payload.data
+        await addInstallment.mutateAsync({
+          name,
+          monthly_amount: parseFloat(monthly_amount),
+          total_amount: parseFloat(total_amount),
+          total_installments: parseInt(total_installments),
+          installments_paid: parseInt(installments_paid),
+          start_date,
+        })
+        toast.success(`Installment plan "${name}" created!`)
       }
 
       setMessages((prev) =>
@@ -325,6 +338,16 @@ export function ChatDrawer() {
                           <div>Description: <span className="font-medium text-slate-100">{msg.actionPayload.data.description}</span></div>
                           <div>Amount: <span className="font-mono text-rose-400 font-bold">{symbol}{msg.actionPayload.data.amount}</span></div>
                           <div className="capitalize">Category: <span className="font-medium text-slate-100">{msg.actionPayload.data.category}</span></div>
+                        </>
+                      )}
+
+                      {msg.actionPayload.type === 'propose_installment' && (
+                        <>
+                          <div className="font-semibold text-foreground">Track Installment Plan</div>
+                          <div>Item/Loan: <span className="font-medium text-slate-100">{msg.actionPayload.data.name}</span></div>
+                          <div>Monthly: <span className="font-mono text-rose-400 font-bold">{symbol}{msg.actionPayload.data.monthly_amount}</span></div>
+                          <div>Total: <span className="font-mono text-slate-100">{symbol}{msg.actionPayload.data.total_amount}</span></div>
+                          <div>Duration: <span className="font-medium text-slate-100">{msg.actionPayload.data.total_installments} months</span></div>
                         </>
                       )}
                     </div>

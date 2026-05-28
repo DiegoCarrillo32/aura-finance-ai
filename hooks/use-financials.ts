@@ -66,6 +66,18 @@ export interface Transaction {
   created_at: string
 }
 
+export interface Installment {
+  id: string
+  user_id: string
+  name: string
+  monthly_amount: number
+  total_amount: number | null
+  total_installments: number
+  installments_paid: number
+  start_date: string
+  created_at: string
+}
+
 // ------------------ PROFILE ------------------
 
 export function useProfile() {
@@ -452,6 +464,87 @@ export function useDeleteTransaction() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
+    },
+  })
+}
+
+// ------------------ INSTALLMENTS ------------------
+
+export function useInstallments() {
+  return useQuery<Installment[]>({
+    queryKey: ['installments'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return []
+
+      const { data, error } = await supabase
+        .from('installments')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      return data || []
+    },
+  })
+}
+
+export function useAddInstallment() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (installment: Omit<Installment, 'id' | 'user_id' | 'created_at'>) => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      const { data, error } = await supabase
+        .from('installments')
+        .insert({ ...installment, user_id: user.id })
+        .select('*')
+        .single()
+
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['installments'] })
+    },
+  })
+}
+
+export function useUpdateInstallment() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (updates: Partial<Installment> & { id: string }) => {
+      const { id, ...dataToUpdate } = updates
+      const { data, error } = await supabase
+        .from('installments')
+        .update(dataToUpdate)
+        .eq('id', id)
+        .select('*')
+        .single()
+
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['installments'] })
+    },
+  })
+}
+
+export function useDeleteInstallment() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('installments')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['installments'] })
     },
   })
 }

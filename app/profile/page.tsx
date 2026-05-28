@@ -7,12 +7,20 @@ import { GlassCard } from '@/components/glass-card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { User, Coins, Landmark, Shield, Sparkles } from 'lucide-react'
+import { User, Coins, Landmark, Shield, Sparkles, Sun } from 'lucide-react'
 import { toast } from 'sonner'
+import { useTheme } from 'next-themes'
 
 export default function ProfilePage() {
   const { data: profile, isLoading: isProfileLoading } = useProfile()
   const updateProfile = useUpdateProfile()
+
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const { data: incomes = [] } = useIncomes()
   const { data: fixedExpenses = [] } = useFixedExpenses()
@@ -201,6 +209,50 @@ export default function ProfilePage() {
               <div className="flex justify-between py-2">
                 <span className="text-muted-foreground">Active Savings Goals</span>
                 <span className="font-bold font-mono">{goals.length}</span>
+              </div>
+            </div>
+          </GlassCard>
+
+          <GlassCard className="space-y-4">
+            <h2 className="text-md font-bold tracking-wide flex items-center gap-2">
+              <Sun className="w-5 h-5 text-amber-400 dark:text-amber-300" /> UI Customization
+            </h2>
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">Select your interface theme preference.</p>
+              <div className="flex bg-card p-1 rounded-lg border border-border">
+                <button
+                  type="button"
+                  onClick={() => setTheme('light')}
+                  className={`flex-1 text-xs py-1.5 rounded-md font-medium transition-all cursor-pointer ${
+                    mounted && theme === 'light'
+                      ? 'bg-primary text-primary-foreground shadow font-bold'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Light
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTheme('dark')}
+                  className={`flex-1 text-xs py-1.5 rounded-md font-medium transition-all cursor-pointer ${
+                    mounted && theme === 'dark'
+                      ? 'bg-primary text-primary-foreground shadow font-bold'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Dark
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTheme('system')}
+                  className={`flex-1 text-xs py-1.5 rounded-md font-medium transition-all cursor-pointer ${
+                    mounted && theme === 'system'
+                      ? 'bg-primary text-primary-foreground shadow font-bold'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  System
+                </button>
               </div>
             </div>
           </GlassCard>
